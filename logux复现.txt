@@ -1,0 +1,1 @@
+下一步再跟着 logux.org/guide 看看，同时搞清楚next.js node.js两种编译环境和.ts/.js的关系。可以最后看看之前github上边下载的logux包是什么。
