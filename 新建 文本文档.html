@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Websites Conflict | 网站冲突分析平台</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-red: #ef4444;
+            --accent-blue: #3b82f6;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        header { text-align: center; margin-bottom: 40px; }
+        h1 { font-size: 2.5rem; background: linear-gradient(90deg, var(--accent-blue), var(--accent-red)); -webkit-background-clip: text; color: transparent; margin-bottom: 8px; }
+        p.subtitle { color: var(--text-sub); font-size: 1.1rem; }
+
+        .input-zone {
+            display: flex;
+            gap: 16px;
+            width: 100%;
+            max-width: 900px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .site-input {
+            flex: 1;
+            min-width: 280px;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            background: var(--card-bg);
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.3s;
+        }
+        .site-input:focus { border-color: var(--accent-blue); }
+        .site-input.right:focus { border-color: var(--accent-red); }
+
+        .analyze-btn {
+            padding: 16px 40px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-red));
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        .analyze-btn:hover { transform: translateY(-2px); opacity: 0.9; }
+        .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* 结果展示区 */
+        .result-zone {
+            width: 100%;
+            max-width: 900px;
+            display: none; /* 默认隐藏 */
+            flex-direction: column;
+            gap: 24px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .conflict-score-card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-left: 4px solid var(--accent-red);
+        }
+
+        .score-circle {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; font-weight: bold; color: var(--accent-red);
+        }
+
+        .dimensions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .dim-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border-top: 2px solid #334155;
+        }
+        .dim-card h3 { font-size: 0.9rem; color: var(--text-sub); margin-bottom: 8px; }
+        .dim-bar-bg { height: 6px; background: #334155; border-radius: 3px; overflow: hidden; }
+        .dim-bar-fill { height: 100%; background: var(--accent-red); width: 0%; transition: width 1s ease; }
+        
+        .detail-list { background: var(--card-bg); padding: 24px; border-radius: 16px; }
+        .detail-item { padding: 12px 0; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; }
+        .detail-item:last-child { border-bottom: none; }
+        .tag { font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; background: rgba(239,68,68,0.2); color: var(--accent-red); }
+
+        /* 加载状态 */
+        .loading { display: none; text-align: center; padding: 40px; color: var(--text-sub); }
+        .spinner { width: 40px; height: 40px; border: 4px solid #334155; border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>⚡ Websites Conflict</h1>
+    <p class="subtitle">输入两个网站，AI 帮你分析内容、设计与受众的冲突点</p >
+</header>
+
+<div class="input-zone">
+    <input type="text" id="siteA" class="site-input" placeholder="网站 A (例如: apple.com)">
+    <input type="text" id="siteB" class="site-input right" placeholder="网站 B (例如: microsoft.com)">
+    <button class="analyze-btn" id="analyzeBtn">开始冲突分析</button>
+</div>
+
+<div class="loading" id="loadingState">
+    <div class="spinner"></div>
+    <p>正在抓取数据并计算冲突维度...</p >
+</div>
+
+<div class="result-zone" id="resultZone">
+    <div class="conflict-score-card">
+        <div>
+            <h2>综合冲突指数</h2>
+            <p style="color:var(--text-sub); margin-top:4px;">两个网站在核心定位与体验上的差异程度</p >
+        </div>
+        <div class="score-circle" id="totalScore">0</div>
+    </div>
+
+    <div class="dimensions-grid">
+        <div class="dim-card">
+            <h3>🎨 视觉设计冲突</h3>
+            <div class="dim-bar-bg"><div class="dim-bar-fill" id="barDesign"></div></div>
+        </div>
+        <div class="dim-card">
+            <h3>📝 内容立场冲突</h3>
+            <div class="dim-bar-bg"><div class="dim-bar-fill" id="barContent"></div></div>
+        </div>
+        <div class="dim-card">
+            <h3>👥 目标受众冲突</h3>
+            <div class="dim-bar-bg"><div class="dim-bar-fill" id="barAudience"></div></div>
+        </div>
+        <div class="dim-card">
+            <h3>⚙️ 技术栈冲突</h3>
+            <div class="dim-bar-bg"><div class="dim-bar-fill" id="barTech"></div></div>
+        </div>
+    </div>
+
+    <div class="detail-list">
+        <h3 style="margin-bottom:16px;">🔍 关键冲突点</h3>
+        <div id="detailContainer"></div>
+    </div>
+</div>
+
+<script>
+    // 模拟数据生成器（实际项目中这里调用后端 API）
+    const generateMockData = (urlA, urlB) => {
+        const score = Math.floor(Math.random() * 40) + 60; // 60-100 之间
+        return {
+            total: score,
+            dimensions: {
+                design: Math.floor(Math.random() * 50) + 30,
+                content: Math.floor(Math.random() * 60) + 20,
+                audience: Math.floor(Math.random() * 40) + 40,
+                tech: Math.floor(Math.random() * 30) + 10
+            },
+            details: [
+                { label: "色彩心理学", desc: `${urlA} 使用冷色调强调专业，${urlB} 使用暖色调强调亲和力`, level: "高" },
+                { label: "导航逻辑", desc: "A 采用深层级分类，B 采用扁平化单页流", level: "中" },
+                { label: "CTA 策略", desc: "A 引导注册，B 引导直接购买", level: "高" },
+                { label: "移动端适配", desc: "两者响应式断点策略不一致", level: "低" }
+            ]
+        };
+    };
+
+    const btn = document.getElementById('analyzeBtn');
+    const inputA = document.getElementById('siteA');
+    const inputB = document.getElementById('siteB');
+    const loading = document.getElementById('loadingState');
+    const resultZone = document.getElementById('resultZone');
+
+    btn.addEventListener('click', () => {
+        if (!inputA.value || !inputB.value) {
+            alert("请输入两个网站地址！");
+            return;
+        }
+
+        // 1. 切换状态
+        btn.disabled = true;
+        resultZone.style.display = 'none';
+        loading.style.display = 'block';
+
+        // 2. 模拟异步请求
+        setTimeout(() => {
+            const data = generateMockData(inputA.value, inputB.value);
+            
+            // 渲染分数
+            document.getElementById('totalScore').innerText = data.total;
+            
+            // 渲染进度条（带延迟动画）
+            setTimeout(() => {
+                document.getElementById('barDesign').style.width = data.dimensions.design + '%';
+                document.getElementById('barContent').style.width = data.dimensions.content + '%';
+                document.getElementById('barAudience').style.width = data.dimensions.audience + '%';
+                document.getElementById('barTech').style.width = data.dimensions.tech + '%';
+            }, 100);
+
+            // 渲染详情列表
+            const container = document.getElementById('detailContainer');
+            container.innerHTML = '';
+            data.details.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'detail-item';
+                div.innerHTML = `
+                    <div>
+                        <strong>${item.label}</strong>
+                        <div style="font-size:0.85rem; color:var(--text-sub); margin-top:4px;">${item.desc}</div>
+                    </div>
+                    <span class="tag">${item.level}冲突</span>
+                `;
+                container.appendChild(div);
+            });
+
+            // 3. 显示结果
+            loading.style.display = 'none';
+            resultZone.style.display = 'flex';
+            btn.disabled = false;
+        }, 1500);
+    });
+</script>
+
+</body>
+</html>
