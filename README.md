@@ -1,11 +1,13 @@
 # websites-conflict
 # 怎么使用
 -1.clone项目到自己的本地windows，要求安装了nodejs
+
 -2.logux_server\server 目录下运行终端，用
 npm run test 打开服务器
+
 -3.clientcpWah222 目录下
 npm run dev后会返回一个本地url，将其用浏览器打开，
-目前有一个账户 frank@123.com 密码是 frank
+目前有一个账户frank@163.com密码是frank
 然后会拒绝连接，因为没有写下一步的网页。
 
 
